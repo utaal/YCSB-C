@@ -137,6 +137,7 @@ class CoreWorkload {
   /// Initialize the scenario.
   /// Called once, in the main client thread, before any operations are started.
   ///
+  virtual void Init(const utils::Properties &p, bool run_only);
   virtual void Init(const utils::Properties &p);
   
   virtual void BuildValues(std::vector<ycsbc::DB::KVPair> &values);

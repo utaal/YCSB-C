@@ -73,13 +73,15 @@ const string CoreWorkload::INSERT_START_DEFAULT = "0";
 const string CoreWorkload::RECORD_COUNT_PROPERTY = "recordcount";
 const string CoreWorkload::OPERATION_COUNT_PROPERTY = "operationcount";
 
-void CoreWorkload::Init(const utils::Properties &p) {
-  table_name_ = p.GetProperty(TABLENAME_PROPERTY,TABLENAME_DEFAULT);
+void CoreWorkload::Init(const utils::Properties &p, bool run_only) {
+  if (!run_only) {
+    table_name_ = p.GetProperty(TABLENAME_PROPERTY,TABLENAME_DEFAULT);
   
-  field_count_ = std::stoi(p.GetProperty(FIELD_COUNT_PROPERTY,
+    field_count_ = std::stoi(p.GetProperty(FIELD_COUNT_PROPERTY,
                                          FIELD_COUNT_DEFAULT));
-  field_len_generator_ = GetFieldLenGenerator(p);
-  
+    field_len_generator_ = GetFieldLenGenerator(p);
+  }
+
   double read_proportion = std::stod(p.GetProperty(READ_PROPORTION_PROPERTY,
                                                    READ_PROPORTION_DEFAULT));
   double update_proportion = std::stod(p.GetProperty(UPDATE_PROPORTION_PROPERTY,
@@ -90,14 +92,17 @@ void CoreWorkload::Init(const utils::Properties &p) {
                                                    SCAN_PROPORTION_DEFAULT));
   double readmodifywrite_proportion = std::stod(p.GetProperty(
       READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_DEFAULT));
+
+  if (!run_only)
+    record_count_ = std::stoi(p.GetProperty(RECORD_COUNT_PROPERTY));
   
-  record_count_ = std::stoi(p.GetProperty(RECORD_COUNT_PROPERTY));
   std::string request_dist = p.GetProperty(REQUEST_DISTRIBUTION_PROPERTY,
                                            REQUEST_DISTRIBUTION_DEFAULT);
   int max_scan_len = std::stoi(p.GetProperty(MAX_SCAN_LENGTH_PROPERTY,
                                              MAX_SCAN_LENGTH_DEFAULT));
   std::string scan_len_dist = p.GetProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,
                                             SCAN_LENGTH_DISTRIBUTION_DEFAULT);
+
   int insert_start = std::stoi(p.GetProperty(INSERT_START_PROPERTY,
                                              INSERT_START_DEFAULT));
   
@@ -105,14 +110,16 @@ void CoreWorkload::Init(const utils::Properties &p) {
                                                     READ_ALL_FIELDS_DEFAULT));
   write_all_fields_ = utils::StrToBool(p.GetProperty(WRITE_ALL_FIELDS_PROPERTY,
                                                      WRITE_ALL_FIELDS_DEFAULT));
+
+  if (!run_only) {
+    if (p.GetProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_DEFAULT) == "hashed") {
+      ordered_inserts_ = false;
+    } else {
+      ordered_inserts_ = true;
+    }
   
-  if (p.GetProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_DEFAULT) == "hashed") {
-    ordered_inserts_ = false;
-  } else {
-    ordered_inserts_ = true;
+    key_generator_ = new CounterGenerator(insert_start);
   }
-  
-  key_generator_ = new CounterGenerator(insert_start);
   
   if (read_proportion > 0) {
     op_chooser_.AddValue(READ, read_proportion);
@@ -129,8 +136,9 @@ void CoreWorkload::Init(const utils::Properties &p) {
   if (readmodifywrite_proportion > 0) {
     op_chooser_.AddValue(READMODIFYWRITE, readmodifywrite_proportion);
   }
-  
-  insert_key_sequence_.Set(record_count_);
+
+  if (!run_only)
+    insert_key_sequence_.Set(record_count_);
   
   if (request_dist == "uniform") {
     key_chooser_ = new UniformGenerator(0, record_count_ - 1);
@@ -162,6 +170,10 @@ void CoreWorkload::Init(const utils::Properties &p) {
     throw utils::Exception("Distribution not allowed for scan length: " +
         scan_len_dist);
   }
+}
+
+void CoreWorkload::Init(const utils::Properties &p) {
+  Init(p, false);
 }
 
 ycsbc::Generator<uint64_t> *CoreWorkload::GetFieldLenGenerator(

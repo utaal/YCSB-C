@@ -139,6 +139,7 @@ class CoreWorkload {
   ///
   virtual void Init(const utils::Properties &p, bool run_only);
   virtual void Init(const utils::Properties &p);
+  virtual void AdvanceToEndOfLoad();
   
   virtual void BuildValues(std::vector<ycsbc::DB::KVPair> &values);
   virtual void BuildUpdate(std::vector<ycsbc::DB::KVPair> &update);

@@ -176,6 +176,10 @@ void CoreWorkload::Init(const utils::Properties &p) {
   Init(p, false);
 }
 
+void CoreWorkload::AdvanceToEndOfLoad() {
+  ((CounterGenerator *)key_generator_)->Set(insert_key_sequence_.Last() + 1);
+}
+
 ycsbc::Generator<uint64_t> *CoreWorkload::GetFieldLenGenerator(
     const utils::Properties &p) {
   string field_len_dist = p.GetProperty(FIELD_LENGTH_DISTRIBUTION_PROPERTY,
